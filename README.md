@@ -100,9 +100,9 @@ Glassbox has two layers:
 | Layer | What it does | How |
 |-------|-------------|-----|
 | **Cursor Rule** | Tells the AI agent to create/update `.vis.md` files alongside every code edit | `glassbox.mdc` — always-apply rule with the template and guidelines |
-| **Stop Hook** | Safety net that catches missed files after the agent finishes | `check-vis-md.sh` — compares MD5 hashes to detect missing or stale `.vis.md` files and sends the agent back to fix them |
+| **Stop Hook** | Safety net that catches missed files after the agent finishes | `check-vis-md.sh` — compares MD5 hashes to detect missing, stale, or orphaned `.vis.md` files and sends the agent back to fix them |
 
-The `.vis.md` files live in a `.vis/` directory that mirrors your source tree:
+The `.vis.md` files live in a `.vis/` directory that mirrors your source tree, plus a project-level index:
 
 ```
 project/
@@ -110,10 +110,20 @@ project/
     auth.py
     utils.py
   .vis/
+    _index.vis.md        <-- project-level architecture view
     src/
       auth.py.vis.md
       utils.py.vis.md
 ```
+
+### Project index
+
+`.vis/_index.vis.md` is an auto-maintained project-level architecture view. It contains:
+
+- **Module Map** — a `graph LR` mermaid diagram showing cross-file dependencies grouped by directory
+- **File Inventory** — a table of every visualized file, its purpose, and most recent change
+
+The agent creates and updates the index whenever a `.vis.md` is created or changed. The hook detects when the index is missing or stale.
 
 ## Install
 
@@ -193,9 +203,57 @@ To view the diagrams, open any `.vis.md` file and use **Markdown Preview** (`Cmd
 
 Glassbox ignores non-code files: lock files, config files (`.eslintrc`, `tsconfig.json`), dotfiles (`.env`, `.gitignore`), images, and dependency directories (`node_modules/`, `venv/`).
 
+### Orphan cleanup
+
+When you delete a source file, the hook detects that its `.vis.md` companion is orphaned (source no longer exists) and sends the agent back to remove it. This keeps `.vis/` clean over time.
+
 ### Committing .vis files
 
 The `.vis/` directory is designed to be committed to git. This way your team and your future self can always see the visual documentation alongside the code.
+
+## CI mode
+
+The hook script supports a `--ci` flag for use in CI pipelines (GitHub Actions, pre-commit hooks, etc.). In CI mode it prints a human-readable report and exits with code 1 if any violations are found.
+
+```bash
+bash check-vis-md.sh --ci
+```
+
+### GitHub Actions example
+
+```yaml
+name: Glassbox Check
+on: [pull_request]
+jobs:
+  check-vis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash check-vis-md.sh --ci
+```
+
+### pre-commit hook
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: local
+    hooks:
+      - id: glassbox
+        name: Glassbox vis.md check
+        entry: bash check-vis-md.sh --ci
+        language: system
+        pass_filenames: false
+```
+
+### What CI mode detects
+
+| Violation | Description |
+|-----------|-------------|
+| **Missing** | Code file changed but no `.vis.md` companion exists |
+| **Stale** | Source hash in `.vis.md` doesn't match the current source file |
+| **Orphaned** | `.vis.md` exists but its source file has been deleted |
+| **Index stale** | `.vis/_index.vis.md` is missing or needs updating |
 
 ## Requirements
 
