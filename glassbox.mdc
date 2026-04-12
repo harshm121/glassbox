@@ -1,0 +1,93 @@
+---
+description: Maintain .vis.md companion files that summarize what each code file does
+alwaysApply: true
+---
+
+# Glassbox — Visual Code Companion Layer
+
+When you **create, edit, or delete** a code file, also maintain its companion `.vis.md` in the project's `.vis/` directory. The `.vis.md` mirrors the source tree: for `src/main.py`, write `.vis/src/main.py.vis.md`.
+
+## When to act
+
+- **Edit a file** → update its `.vis.md` (refresh components, prepend to Recent Changes)
+- **Create a file** → create a new `.vis.md` from scratch
+- **Delete a file** → delete its `.vis.md`
+- **Never** add `.vis/` to `.gitignore` — these files are meant to be committed to version control
+
+## Skip these files
+
+Lock files, config-only files (`tsconfig.json`, `.eslintrc`, `.prettierrc`), dotfiles (`.gitignore`, `.env`), binary/media files, anything inside `node_modules/`, `venv/`, `__pycache__/`, `.vis/` itself, and `*.vis.md` files.
+
+## Template
+
+Every `.vis.md` must start with a `source-hash` HTML comment on line 1. Compute it as the MD5 hex digest of the source file's full contents after your edits. Use **mermaid diagrams** as the primary visualization — minimize prose.
+
+~~~markdown
+<!-- source-hash: <md5 hex digest of source file contents> -->
+# <relative path to source file>
+
+> One-line purpose
+
+## Recent Changes
+```mermaid
+timeline
+    title Recent Changes
+    Latest : ~modified process_data -- added retry logic
+           : +added validate_input -- schema validation
+    Previous : -removed old_handler -- replaced by process_data
+```
+
+## Structure
+<!-- classDiagram: mark latest changes with stereotypes and notes -->
+```mermaid
+classDiagram
+    class Config {
+        +str api_url
+        +int timeout
+        +int max_retries
+    }
+    class process_data {
+        «function · modified»
+        +Result (dict raw)
+    }
+    note for process_data "added retry with exponential backoff"
+    class validate_input {
+        «function · added»
+        +bool (dict raw)
+    }
+    Config ..> process_data : reads config
+```
+
+## Flow
+```mermaid
+flowchart TD
+    A["entry point"] --> B{"decision"}
+    B -- yes --> C["outcome"]
+    B -- no --> D["other outcome"]
+```
+
+## Dependencies
+```mermaid
+graph LR
+    ThisFile["this_file.py"]
+    ThisFile --> dep1["requests — HTTP calls"]
+    ThisFile --> dep2["utils.helpers — transforms"]
+```
+~~~
+
+## Mermaid diagram guidelines
+
+Use mermaid for **every section**. Only the one-line purpose (`> ...`) is plain text.
+
+- **Recent Changes**: `timeline` diagram. Group entries as `Latest`, `Previous`, etc. Prefix each entry with `~modified`, `+added`, or `-removed` followed by the component name and a short reason. Keep the last 5 entries; drop older ones. On first creation use a single entry: `+added file -- <reason>`.
+- **Structure**: `classDiagram`. Mark components changed in the latest edit with stereotypes (`«function · modified»`, `«class · added»`, `«removed»`). Add a `note for <Component>` explaining what changed. Clear these annotations on the *next* edit (only the latest edit is annotated). For function-only files use `«function»` stereotype.
+- **Flow**: `flowchart TD` for branching/looping logic. `sequenceDiagram` when the file orchestrates calls across modules. Include for every file — even simple ones get a 3-4 node happy-path flowchart.
+- **Dependencies**: `graph LR` with the current file on the left. Label each edge with a 2-4 word reason. Skip if the file has no imports.
+- Keep diagrams compact — short labels in quotes, no deep nesting.
+- Never use explicit colors or `style`/`classDef` directives (breaks dark mode).
+
+## Quality guidelines
+
+- Diagrams show **behavior and relationships**, not implementation line-by-line
+- A developer should grasp the file in 30 seconds of looking at the diagrams
+- Always recompute and update the `source-hash` comment to match the final source file contents
