@@ -120,7 +120,7 @@ project/
 ### Quick install (recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/user/glassbox/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/harshm121/glassbox/main/install.sh | bash
 ```
 
 ### Manual install

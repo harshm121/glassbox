@@ -6,7 +6,7 @@ RULES_DIR="${CURSOR_DIR}/rules"
 HOOKS_DIR="${CURSOR_DIR}/hooks"
 HOOKS_JSON="${CURSOR_DIR}/hooks.json"
 
-REPO_URL="https://raw.githubusercontent.com/user/glassbox/main"
+REPO_URL="https://raw.githubusercontent.com/harshm121/glassbox/main"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
